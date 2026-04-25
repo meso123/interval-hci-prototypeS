@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  ChevronRight, Clock, Dumbbell, Check, Play, Pause, ArrowLeft,
-  Flame, Target, Zap, Home, User, BarChart3, X, Sparkles, Settings,
+  ChevronRight, Clock, Dumbbell, Play, Pause, ArrowLeft,
+  Flame, Target, Zap, Home, User, BarChart3, X, Sparkles, BookOpen,
 } from 'lucide-react';
 
 const FONT_STYLE = `
@@ -14,6 +14,7 @@ const FONT_STYLE = `
 const C = {
   bg: '#F4F0E8', ink: '#0F0F0E', muted: '#8A857C', soft: '#E8E2D5',
   lime: '#D4FF00', coral: '#FF5733', white: '#FFFFFF',
+  amber: '#F5A623',
 };
 
 const MOCK_SCHEDULE = [
@@ -33,6 +34,7 @@ const WORKOUTS_90 = [
 const WORKOUTS_SHORT = [
   { id: 's1', name: 'Desk Break Reset', duration: 12, intensity: 'Low', equipment: 'Bodyweight', focus: 'Mobility', exercises: 5, calories: 65 },
   { id: 's2', name: 'Quick Core', duration: 15, intensity: 'Moderate', equipment: 'Mat', focus: 'Core', exercises: 5, calories: 110 },
+  { id: 's3', name: 'Study Break Stretch', duration: 10, intensity: 'Low', equipment: 'Bodyweight', focus: 'Recovery', exercises: 4, calories: 40 },
 ];
 
 const EXERCISES = [
@@ -49,24 +51,29 @@ export default function IntervalApp() {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
   const [exerciseIdx, setExerciseIdx] = useState(0);
   const [streak, setStreak] = useState(3);
+  const [examMode, setExamMode] = useState(false);
+
   const go = (s) => { window.scrollTo(0, 0); setScreen(s); };
+
   return (
     <div className="min-h-screen font-body" style={{ background: C.bg, color: C.ink }}>
       <style dangerouslySetInnerHTML={{ __html: FONT_STYLE }} />
       <div className="max-w-md mx-auto relative" style={{ minHeight: '100vh' }}>
         {screen === 'welcome'       && <Welcome onNext={() => go('schedule')} />}
         {screen === 'schedule'      && <ScheduleSetup onNext={() => go('home')} onBack={() => go('welcome')} />}
-        {screen === 'home'          && <HomeScreen streak={streak} onPickWorkout={() => go('workoutList')} onProgress={() => go('progress')} onWorkouts={() => go('workoutList')} onProfile={() => go('profile')} />}
-        {screen === 'workoutList'   && <WorkoutList onPick={(w) => { setSelectedWorkout(w); go('workoutDetail'); }} onBack={() => go('home')} onProgress={() => go('progress')} onProfile={() => go('profile')} />}
+        {screen === 'home'          && <HomeScreen streak={streak} examMode={examMode} onToggleExamMode={() => setExamMode(e => !e)} onPickWorkout={() => go('workoutList')} onProgress={() => go('progress')} onWorkouts={() => go('workoutList')} onProfile={() => go('profile')} />}
+        {screen === 'workoutList'   && <WorkoutList examMode={examMode} onPick={(w) => { setSelectedWorkout(w); go('workoutDetail'); }} onBack={() => go('home')} onProgress={() => go('progress')} onProfile={() => go('profile')} />}
         {screen === 'workoutDetail' && selectedWorkout && <WorkoutDetail workout={selectedWorkout} onStart={() => { setExerciseIdx(0); go('active'); }} onBack={() => go('workoutList')} />}
         {screen === 'active'        && selectedWorkout && <ActiveWorkout idx={exerciseIdx} setIdx={setExerciseIdx} onDone={() => { setStreak(s => s + 1); go('complete'); }} onExit={() => go('home')} />}
         {screen === 'complete'      && selectedWorkout && <Complete workout={selectedWorkout} streak={streak} onProgress={() => go('progress')} onHome={() => go('home')} />}
         {screen === 'progress'      && <Progress streak={streak} onBack={() => go('home')} onWorkouts={() => go('workoutList')} onProfile={() => go('profile')} />}
-        {screen === 'profile'       && <Profile streak={streak} onBack={() => go('home')} onWorkouts={() => go('workoutList')} onProgress={() => go('progress')} />}
+        {screen === 'profile'       && <Profile streak={streak} examMode={examMode} onToggleExamMode={() => setExamMode(e => !e)} onBack={() => go('home')} onWorkouts={() => go('workoutList')} onProgress={() => go('progress')} />}
       </div>
     </div>
   );
 }
+
+// ─── WELCOME ────────────────────────────────────────────────────────────────
 
 function Welcome({ onNext }) {
   return (
@@ -89,6 +96,8 @@ function Welcome({ onNext }) {
     </div>
   );
 }
+
+// ─── SCHEDULE SETUP ─────────────────────────────────────────────────────────
 
 function ScheduleSetup({ onNext, onBack }) {
   const [input, setInput] = useState('');
@@ -131,7 +140,9 @@ function ScheduleSetup({ onNext, onBack }) {
   );
 }
 
-function HomeScreen({ streak, onPickWorkout, onProgress, onWorkouts, onProfile }) {
+// ─── HOME SCREEN ─────────────────────────────────────────────────────────────
+
+function HomeScreen({ streak, examMode, onToggleExamMode, onPickWorkout, onProgress, onWorkouts, onProfile }) {
   return (
     <div className="min-h-screen pb-24">
       <div className="px-6 pt-12 flex items-center justify-between">
@@ -141,37 +152,86 @@ function HomeScreen({ streak, onPickWorkout, onProgress, onWorkouts, onProfile }
         </div>
         <button onClick={onProfile} className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold" style={{ background: C.ink, color: C.bg }}>M</button>
       </div>
-      <div className="px-6 mt-8">
-        <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>Today's gym window</p>
-        <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: C.ink, color: C.bg }}>
-          <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full" style={{ background: C.lime, opacity: 0.9 }} />
+
+      {/* ── EXAM MODE BANNER ─────────────────────────── */}
+      <div className="px-6 mt-5">
+        <button
+          onClick={onToggleExamMode}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl active:scale-[0.99] transition"
+          style={{ background: examMode ? C.amber + '22' : C.soft, border: `1.5px solid ${examMode ? C.amber : 'transparent'}` }}
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen size={16} style={{ color: examMode ? C.amber : C.muted }} />
+            <div className="text-left">
+              <p className="text-[13px] font-medium" style={{ color: examMode ? '#A0620A' : C.ink }}>Exam mode</p>
+              <p className="text-[11px]" style={{ color: examMode ? '#A0620A' : C.muted }}>
+                {examMode ? 'On · showing workouts under 20 min' : 'Off · tap to enable during exam week'}
+              </p>
+            </div>
+          </div>
+          <div className="relative w-10 h-5 rounded-full transition-all" style={{ background: examMode ? C.amber : '#0F0F0E33' }}>
+            <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: examMode ? '22px' : '2px' }} />
+          </div>
+        </button>
+      </div>
+
+      {/* ── GYM WINDOW CARD ──────────────────────────── */}
+      <div className="px-6 mt-5">
+        <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>
+          {examMode ? "Today's quick window" : "Today's gym window"}
+        </p>
+        <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: examMode ? '#1A1400' : C.ink, color: C.bg }}>
+          <div className="absolute -right-12 -top-12 w-40 h-40 rounded-full" style={{ background: examMode ? C.amber : C.lime, opacity: 0.9 }} />
           <div className="relative">
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-[56px] leading-none font-light">14:30</span>
-              <span className="text-[16px]" style={{ color: '#F4F0E899' }}>– 16:00</span>
+              <span className="font-display text-[56px] leading-none font-light">{examMode ? '14:30' : '14:30'}</span>
+              <span className="text-[16px]" style={{ color: '#F4F0E899' }}>– {examMode ? '14:45' : '16:00'}</span>
             </div>
-            <p className="mt-2 text-[13px]" style={{ color: '#F4F0E899' }}>90-min window · between Project Lab and your free evening</p>
-            <div className="mt-5 flex items-center gap-3"><Zap size={14} style={{ color: C.lime }} /><span className="text-[12px]">Recommended: Full Body Flow</span></div>
-            <button onClick={onPickWorkout} className="mt-5 w-full py-3.5 rounded-full font-medium text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition" style={{ background: C.lime, color: C.ink }}>
-              Pick a workout <ChevronRight size={16} />
+            <p className="mt-2 text-[13px]" style={{ color: '#F4F0E899' }}>
+              {examMode ? '15-min window · a quick reset between study blocks' : '90-min window · between Project Lab and your free evening'}
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <Zap size={14} style={{ color: examMode ? C.amber : C.lime }} />
+              <span className="text-[12px]">{examMode ? 'Recommended: Desk Break Reset' : 'Recommended: Full Body Flow'}</span>
+            </div>
+            <button onClick={onPickWorkout} className="mt-5 w-full py-3.5 rounded-full font-medium text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition"
+              style={{ background: examMode ? C.amber : C.lime, color: C.ink }}>
+              {examMode ? 'Pick a quick workout' : 'Pick a workout'} <ChevronRight size={16} />
             </button>
           </div>
         </div>
       </div>
-      <div className="px-6 mt-8">
-        <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>Other windows this week</p>
-        <div className="space-y-2">
-          {[{ day: 'Tue', time: '11:30 – 13:30', len: '120 min' }, { day: 'Wed', time: '14:30 – 17:00', len: '150 min' }, { day: 'Fri', time: '10:30 – 13:00', len: '150 min' }].map((w, i) => (
-            <div key={i} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ background: C.soft }}>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[12px] font-semibold w-8" style={{ color: C.muted }}>{w.day}</span>
-                <span className="text-[14px]">{w.time}</span>
-              </div>
-              <span className="font-mono text-[11px]" style={{ color: C.muted }}>{w.len}</span>
-            </div>
-          ))}
+
+      {/* ── EXAM MODE MESSAGE ──────────────────────────── */}
+      {examMode && (
+        <div className="px-6 mt-4">
+          <div className="rounded-2xl p-4" style={{ background: C.amber + '15', border: `1px solid ${C.amber}33` }}>
+            <p className="text-[13px] leading-relaxed" style={{ color: '#7A4A00' }}>
+              <strong>Exam week?</strong> Interval has capped workouts to 20 min and prioritised desk stretches and mobility. Staying active — even briefly — helps reduce stress and improve recall.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── OTHER WINDOWS ──────────────────────────── */}
+      {!examMode && (
+        <div className="px-6 mt-8">
+          <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>Other windows this week</p>
+          <div className="space-y-2">
+            {[{ day: 'Tue', time: '11:30 – 13:30', len: '120 min' }, { day: 'Wed', time: '14:30 – 17:00', len: '150 min' }, { day: 'Fri', time: '10:30 – 13:00', len: '150 min' }].map((w, i) => (
+              <div key={i} className="flex items-center justify-between py-3 px-4 rounded-2xl" style={{ background: C.soft }}>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[12px] font-semibold w-8" style={{ color: C.muted }}>{w.day}</span>
+                  <span className="text-[14px]">{w.time}</span>
+                </div>
+                <span className="font-mono text-[11px]" style={{ color: C.muted }}>{w.len}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── STREAK ──────────────────────────── */}
       <div className="px-6 mt-6">
         <button onClick={onProgress} className="w-full text-left rounded-2xl p-4 flex items-center justify-between" style={{ background: C.soft }}>
           <div className="flex items-center gap-3">
@@ -184,29 +244,44 @@ function HomeScreen({ streak, onPickWorkout, onProgress, onWorkouts, onProfile }
           <ChevronRight size={16} style={{ color: C.muted }} />
         </button>
       </div>
+
       <BottomNav active="home" onHome={() => {}} onWorkouts={onWorkouts} onProgress={onProgress} onProfile={onProfile} />
     </div>
   );
 }
 
-function WorkoutList({ onPick, onBack, onProgress, onProfile }) {
-  const [filter, setFilter] = useState('all');
+// ─── WORKOUT LIST ─────────────────────────────────────────────────────────────
+
+function WorkoutList({ examMode, onPick, onBack, onProgress, onProfile }) {
+  const [filter, setFilter] = useState(examMode ? 'short' : 'all');
   const filtered = filter === 'short' ? WORKOUTS_SHORT : WORKOUTS_90;
+
   return (
     <div className="min-h-screen px-6 pt-12 pb-24">
       <button onClick={onBack} className="p-2 -ml-2"><ArrowLeft size={20} /></button>
       <div className="mt-4">
-        <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>For your 90-min window</p>
+        <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>
+          {examMode ? 'Exam mode · quick sessions only' : 'For your 90-min window'}
+        </p>
         <h2 className="font-display text-[32px] leading-tight mt-1 font-light">What are we<br/>training today?</h2>
       </div>
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-1">
+
+      {examMode && (
+        <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: C.amber + '18' }}>
+          <BookOpen size={13} style={{ color: C.amber }} />
+          <p className="text-[12px]" style={{ color: '#7A4A00' }}>Exam mode on — showing workouts under 20 min</p>
+        </div>
+      )}
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
         {[{ id: 'all', label: 'Full workouts' }, { id: 'short', label: 'Under 20 min' }, { id: 'push', label: 'Push' }, { id: 'pull', label: 'Pull' }, { id: 'legs', label: 'Legs' }].map((f) => (
           <button key={f.id} onClick={() => setFilter(f.id)} className="flex-shrink-0 px-4 py-2 rounded-full text-[12px] font-medium border transition active:scale-[0.97]"
-            style={{ background: filter === f.id ? C.ink : 'transparent', color: filter === f.id ? C.bg : C.ink, borderColor: filter === f.id ? C.ink : '#0F0F0E22' }}>
+            style={{ background: filter === f.id ? C.ink : 'transparent', color: filter === f.id ? C.bg : C.ink, borderColor: filter === f.id ? C.ink : '#0F0F0E22', opacity: examMode && f.id !== 'short' ? 0.4 : 1 }}>
             {f.label}
           </button>
         ))}
       </div>
+
       <div className="mt-6 space-y-3">
         {filtered.map((w) => (
           <button key={w.id} onClick={() => onPick(w)} className="w-full text-left rounded-2xl p-5 border active:scale-[0.99] transition" style={{ background: C.white, borderColor: '#0F0F0E15' }}>
@@ -215,7 +290,7 @@ function WorkoutList({ onPick, onBack, onProgress, onProfile }) {
                 <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: C.muted }}>{w.focus}</p>
                 <h3 className="font-display text-[22px] leading-tight mt-1 font-medium">{w.name}</h3>
               </div>
-              <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: C.lime }}>
+              <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: examMode ? C.amber + '33' : C.lime }}>
                 <Dumbbell size={18} style={{ color: C.ink }} />
               </div>
             </div>
@@ -232,6 +307,8 @@ function WorkoutList({ onPick, onBack, onProgress, onProfile }) {
     </div>
   );
 }
+
+// ─── WORKOUT DETAIL ───────────────────────────────────────────────────────────
 
 function WorkoutDetail({ workout, onStart, onBack }) {
   return (
@@ -251,7 +328,7 @@ function WorkoutDetail({ workout, onStart, onBack }) {
       <div className="px-6 mt-8">
         <p className="font-mono text-[11px] uppercase tracking-wider mb-4" style={{ color: C.muted }}>What you'll do</p>
         <div className="space-y-2">
-          {EXERCISES.map((e, i) => (
+          {EXERCISES.slice(0, workout.exercises).map((e, i) => (
             <div key={i} className="flex items-center gap-4 py-3 px-4 rounded-2xl" style={{ background: C.soft }}>
               <span className="font-mono text-[13px] font-semibold w-6" style={{ color: C.muted }}>{String(i + 1).padStart(2, '0')}</span>
               <div className="flex-1">
@@ -286,24 +363,48 @@ function Stat({ label, value }) {
   );
 }
 
+// ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
+
 function ActiveWorkout({ idx, setIdx, onDone, onExit }) {
   const [timer, setTimer] = useState(45);
   const [running, setRunning] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const current = EXERCISES[idx];
   const progress = ((idx + 1) / EXERCISES.length) * 100;
+
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => setTimer((x) => (x > 0 ? x - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [running]);
+
   const next = () => {
-    if (idx < EXERCISES.length - 1) { setIdx(idx + 1); setTimer(45); setRunning(false); }
+    if (idx < EXERCISES.length - 1) { setIdx(idx + 1); setTimer(EXERCISES[idx + 1]?.rest || 45); setRunning(false); }
     else { onDone(); }
   };
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: C.ink, color: C.bg }}>
+      {/* Exit confirmation dialog */}
+      {showExitDialog && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center px-6" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="w-full rounded-3xl p-6" style={{ background: C.bg, color: C.ink }}>
+            <h3 className="font-display text-[24px] font-light">Exit workout?</h3>
+            <p className="mt-2 text-[14px]" style={{ color: C.muted }}>Your progress will be lost. This cannot be undone.</p>
+            <div className="mt-6 space-y-3">
+              <button onClick={onExit} className="w-full py-4 rounded-full font-medium text-[15px]" style={{ background: C.coral, color: C.white }}>
+                Yes, exit
+              </button>
+              <button onClick={() => setShowExitDialog(false)} className="w-full py-4 rounded-full font-medium text-[15px] border" style={{ borderColor: '#0F0F0E22' }}>
+                Keep going
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-6 pt-12 pb-4 flex items-center justify-between">
-        <button onClick={onExit} style={{ color: C.bg }}><X size={20} /></button>
+        <button onClick={() => setShowExitDialog(true)} style={{ color: C.bg }}><X size={20} /></button>
         <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: '#F4F0E888' }}>Exercise {idx + 1} of {EXERCISES.length}</p>
         <div className="w-8" />
       </div>
@@ -333,6 +434,8 @@ function ActiveWorkout({ idx, setIdx, onDone, onExit }) {
     </div>
   );
 }
+
+// ─── COMPLETE ─────────────────────────────────────────────────────────────────
 
 function Complete({ workout, streak, onProgress, onHome }) {
   return (
@@ -376,6 +479,8 @@ function Complete({ workout, streak, onProgress, onHome }) {
     </div>
   );
 }
+
+// ─── PROGRESS ─────────────────────────────────────────────────────────────────
 
 function Progress({ streak, onBack, onWorkouts, onProfile }) {
   const weekData = [
@@ -436,7 +541,9 @@ function Progress({ streak, onBack, onWorkouts, onProfile }) {
   );
 }
 
-function Profile({ streak, onBack, onWorkouts, onProgress }) {
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
+
+function Profile({ streak, examMode, onToggleExamMode, onBack, onWorkouts, onProgress }) {
   const stats = [{ label: 'Sessions', value: '24' }, { label: 'Streak', value: `${streak}d` }, { label: 'This month', value: '8' }, { label: 'Best week', value: '5' }];
   const prefs = [{ label: 'Preferred time', value: 'Afternoon' }, { label: 'Min window', value: '45 min' }, { label: 'University', value: 'UoB Dubai' }, { label: 'Year', value: 'Final year' }];
   return (
@@ -469,6 +576,16 @@ function Profile({ streak, onBack, onWorkouts, onProgress }) {
               <span className="text-[14px] font-medium">{p.value}</span>
             </div>
           ))}
+          {/* Exam Mode toggle in preferences */}
+          <div className="flex items-center justify-between px-4 py-3.5" style={{ background: examMode ? C.amber + '10' : C.white }}>
+            <div>
+              <span className="text-[14px]" style={{ color: C.muted }}>Exam mode</span>
+              <p className="text-[11px]" style={{ color: examMode ? C.amber : C.muted }}>{examMode ? 'On · short sessions only' : 'Off'}</p>
+            </div>
+            <button onClick={onToggleExamMode} className="relative w-10 h-5 rounded-full transition-all" style={{ background: examMode ? C.amber : '#0F0F0E33' }}>
+              <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: examMode ? '22px' : '2px' }} />
+            </button>
+          </div>
         </div>
       </div>
       <div className="mt-6 rounded-2xl p-4 border" style={{ borderColor: '#0F0F0E12', background: C.soft }}>
@@ -492,14 +609,16 @@ function Profile({ streak, onBack, onWorkouts, onProgress }) {
   );
 }
 
+// ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
+
 function BottomNav({ active, onHome, onWorkouts, onProgress, onProfile }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t" style={{ background: C.bg, borderColor: '#0F0F0E15' }}>
       <div className="max-w-md mx-auto px-6 py-3 flex items-center justify-around">
-        <NavBtn icon={Home}     label="Today"    active={active === 'home'}     onClick={onHome} />
-        <NavBtn icon={Dumbbell} label="Workouts" active={active === 'workouts'} onClick={onWorkouts} />
+        <NavBtn icon={Home}      label="Today"    active={active === 'home'}     onClick={onHome} />
+        <NavBtn icon={Dumbbell}  label="Workouts" active={active === 'workouts'} onClick={onWorkouts} />
         <NavBtn icon={BarChart3} label="Progress" active={active === 'progress'} onClick={onProgress} />
-        <NavBtn icon={User}     label="You"      active={active === 'profile'}  onClick={onProfile} />
+        <NavBtn icon={User}      label="You"      active={active === 'profile'}  onClick={onProfile} />
       </div>
     </div>
   );
