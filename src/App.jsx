@@ -714,6 +714,17 @@ function WorkoutList({ examMode, energyLevel, onPick, onBack, onProgress, onProf
 // ─── WORKOUT DETAIL ───────────────────────────────────────────────────────────
 
 function WorkoutDetail({ workout, onStart, onBack }) {
+  const [expanded, setExpanded] = useState(null);
+
+  const exerciseDetails = [
+    { muscle: 'Quads · Glutes', difficulty: 'Beginner', tip: 'Keep your chest tall throughout. Elbows inside your knees at the bottom. Drive through your heels to stand.' },
+    { muscle: 'Hamstrings · Glutes', difficulty: 'Intermediate', tip: 'Push your hips back, not down. Keep the bar close to your legs. Stop when you feel a hamstring stretch — not lower.' },
+    { muscle: 'Chest · Triceps', difficulty: 'Beginner', tip: 'Retract your shoulder blades before you lower the bar. Touch your chest lightly, then press explosively.' },
+    { muscle: 'Back · Biceps', difficulty: 'Beginner', tip: 'Hinge to 45 degrees. Pull the bar to your lower chest. Squeeze your shoulder blades together at the top.' },
+    { muscle: 'Core · Shoulders', difficulty: 'Beginner', tip: 'Stack your shoulders over your wrists. Squeeze your glutes and abs at the same time. Breathe steadily.' },
+    { muscle: 'Traps · Grip · Core', difficulty: 'Intermediate', tip: 'Stand tall, shoulders back. Walk steady, controlled steps. Stop if your grip fails — that is the point of failure.' },
+  ];
+
   return (
     <div className="min-h-screen pb-32">
       <div className="px-6 pt-12 pb-8" style={{ background: C.ink, color: C.bg }}>
@@ -728,24 +739,65 @@ function WorkoutDetail({ workout, onStart, onBack }) {
           <Stat label="Calories" value={`~${workout.calories}`} />
         </div>
       </div>
+
       <div className="px-6 mt-8">
-        <p className="font-mono text-[11px] uppercase tracking-wider mb-4" style={{ color: C.muted }}>What you'll do</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>What you'll do</p>
+          <span className="text-[11px]" style={{ color: C.muted }}>Tap any exercise for form tips</span>
+        </div>
         <div className="space-y-2">
-          {EXERCISES.slice(0, workout.exercises).map((e, i) => (
-            <div key={i} className="flex items-center gap-4 py-3 px-4 rounded-2xl" style={{ background: C.soft }}>
-              <span className="font-mono text-[13px] font-semibold w-6" style={{ color: C.muted }}>{String(i + 1).padStart(2, '0')}</span>
-              <div className="flex-1">
-                <p className="text-[14px] font-medium">{e.name}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{e.sets} · {e.rest}s rest</p>
+          {EXERCISES.slice(0, workout.exercises).map((e, i) => {
+            const detail = exerciseDetails[i];
+            const isOpen = expanded === i;
+            return (
+              <div key={i} className="rounded-2xl overflow-hidden transition-all" style={{ background: C.soft }}>
+                <button
+                  onClick={() => setExpanded(isOpen ? null : i)}
+                  className="w-full flex items-center gap-4 py-3 px-4 active:opacity-80 transition"
+                >
+                  <span className="font-mono text-[13px] font-semibold w-6 flex-shrink-0" style={{ color: C.muted }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="flex-1 text-left">
+                    <p className="text-[14px] font-medium">{e.name}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{e.sets} · {e.rest}s rest</p>
+                  </div>
+                  <svg
+                    width="16" height="16" viewBox="0 0 16 16" fill="none"
+                    style={{ color: C.muted, transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                  >
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+
+                {isOpen && (
+                  <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: '#0F0F0E10' }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium"
+                        style={{ background: C.lime + '55', color: '#3A5200' }}>
+                        {detail.difficulty}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono"
+                        style={{ background: '#0F0F0E0A', color: C.muted }}>
+                        {detail.muscle}
+                      </span>
+                    </div>
+                    <p className="text-[13px] leading-relaxed" style={{ color: C.ink }}>
+                      <span className="font-semibold">Form tip: </span>{detail.tip}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
       <div className="px-6 mt-6">
         <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>You'll need</p>
         <p className="text-[14px]">{workout.equipment}</p>
       </div>
+
       <div className="fixed bottom-0 left-0 right-0 p-4" style={{ background: `linear-gradient(to top, ${C.bg} 70%, transparent)` }}>
         <div className="max-w-md mx-auto">
           <button onClick={onStart} className="w-full py-4 rounded-full font-medium text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition" style={{ background: C.lime, color: C.ink }}>
@@ -756,7 +808,6 @@ function WorkoutDetail({ workout, onStart, onBack }) {
     </div>
   );
 }
-
 function Stat({ label, value }) {
   return (
     <div className="rounded-xl p-3" style={{ background: '#F4F0E812', border: '1px solid #F4F0E822' }}>
