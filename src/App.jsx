@@ -139,30 +139,116 @@ function Welcome({ onNext }) {
 function ScheduleSetup({ onNext, onBack }) {
   const [input, setInput] = useState('');
   const [imported, setImported] = useState(false);
+  const [canvasLoading, setCanvasLoading] = useState(false);
+  const [canvasSuccess, setCanvasSuccess] = useState(false);
+
+  const handleCanvasImport = () => {
+    setCanvasLoading(true);
+    // Simulates Canvas API fetch — in production this would call the Canvas LMS API
+    setTimeout(() => {
+      setCanvasLoading(false);
+      setCanvasSuccess(true);
+      setImported(true);
+      setInput(
+        'Mon 09:00-11:00 HCI Lecture\nMon 14:00-16:00 Project Lab\nTue 10:00-11:30 Stats Tutorial\nWed 09:00-11:00 HCI Lecture\nWed 13:00-14:30 Group Meeting\nThu 11:00-13:00 Seminar\nFri 09:00-10:30 Workshop'
+      );
+    }, 1800);
+  };
+
   return (
     <div className="min-h-screen px-6 pt-12 pb-8">
       <button onClick={onBack} className="p-2 -ml-2"><ArrowLeft size={20} /></button>
       <div className="mt-4">
         <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Step 1 of 3</p>
         <h2 className="font-display text-[40px] leading-[1.05] mt-3 font-light">Bring in your<br />timetable.</h2>
-        <p className="mt-4 text-[14px] leading-relaxed" style={{ color: C.muted }}>Paste from Canvas / Exchange, or use a sample week.</p>
+        <p className="mt-4 text-[14px] leading-relaxed" style={{ color: C.muted }}>Connect Canvas or paste your schedule manually.</p>
       </div>
+
+      {/* Canvas import button */}
       <div className="mt-8">
-        <div className="rounded-2xl p-4 border" style={{ background: C.soft, borderColor: '#0F0F0E12' }}>
-          <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder={"Mon 09:00-11:00 HCI Lecture\nTue 10:00-11:30 Stats..."} className="w-full h-32 bg-transparent outline-none resize-none text-[14px] font-mono" />
-        </div>
-        <button onClick={() => { setImported(true); setInput('Sample week loaded'); }} className="mt-3 text-[13px] underline underline-offset-4" style={{ color: C.muted }}>Use sample week instead →</button>
+        <button
+          onClick={handleCanvasImport}
+          disabled={canvasLoading || canvasSuccess}
+          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl active:scale-[0.99] transition disabled:opacity-70"
+          style={{
+            background: canvasSuccess ? '#E6F4EA' : C.ink,
+            color: canvasSuccess ? '#1A7A3A' : C.bg,
+            border: canvasSuccess ? '1.5px solid #A8D5B5' : 'none',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: canvasSuccess ? '#A8D5B5' : '#F4F0E822' }}>
+              {canvasSuccess
+                ? <svg width="16" height="14" viewBox="0 0 16 14" fill="none"><path d="M1 7L5.5 11.5L15 1" stroke="#1A7A3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#F4F0E8" strokeWidth="1.5"/><path d="M8 5V11M5 8H11" stroke="#F4F0E8" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              }
+            </div>
+            <div className="text-left">
+              <p className="text-[14px] font-medium">
+                {canvasLoading ? 'Connecting to Canvas...' : canvasSuccess ? 'Timetable imported from Canvas' : 'Import from Canvas'}
+              </p>
+              <p className="text-[11px]" style={{ color: canvasSuccess ? '#1A7A3A99' : '#F4F0E888' }}>
+                {canvasSuccess ? 'All 7 classes found' : 'One tap — pulls your full timetable automatically'}
+              </p>
+            </div>
+          </div>
+          {canvasLoading && (
+            <div className="w-5 h-5 rounded-full border-2 animate-spin flex-shrink-0"
+              style={{ borderColor: '#F4F0E844', borderTopColor: C.lime }} />
+          )}
+          {!canvasLoading && !canvasSuccess && (
+            <ChevronRight size={16} style={{ color: '#F4F0E888' }} />
+          )}
+        </button>
       </div>
+
+      {/* Divider */}
+      <div className="mt-5 flex items-center gap-3">
+        <div className="flex-1 h-px" style={{ background: '#0F0F0E15' }} />
+        <span className="text-[11px] font-mono" style={{ color: C.muted }}>or paste manually</span>
+        <div className="flex-1 h-px" style={{ background: '#0F0F0E15' }} />
+      </div>
+
+      {/* Manual input */}
+      <div className="mt-5">
+        <div className="rounded-2xl p-4 border" style={{ background: C.soft, borderColor: '#0F0F0E12' }}>
+          <textarea
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setCanvasSuccess(false); }}
+            placeholder={"Mon 09:00-11:00 HCI Lecture\nTue 10:00-11:30 Stats..."}
+            className="w-full h-28 bg-transparent outline-none resize-none text-[14px] font-mono"
+          />
+        </div>
+        <button
+          onClick={() => { setImported(true); setCanvasSuccess(false); setInput('Mon 09:00-11:00 HCI Lecture\nMon 14:00-16:00 Project Lab\nTue 10:00-11:30 Stats Tutorial\nWed 09:00-11:00 HCI Lecture\nWed 13:00-14:30 Group Meeting\nThu 11:00-13:00 Seminar\nFri 09:00-10:30 Workshop'); }}
+          className="mt-3 text-[13px] underline underline-offset-4"
+          style={{ color: C.muted }}
+        >
+          Use sample week instead →
+        </button>
+      </div>
+
+      {/* Preview */}
       {(imported || input.length > 0) && (
         <div className="mt-8">
-          <p className="font-mono text-[11px] uppercase tracking-wider mb-3" style={{ color: C.muted }}>Preview · This week</p>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Preview · This week</p>
+            {canvasSuccess && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{ background: '#E6F4EA', color: '#1A7A3A' }}>
+                From Canvas
+              </span>
+            )}
+          </div>
           <div className="space-y-2">
             {MOCK_SCHEDULE.map((day) => (
               <div key={day.day} className="flex items-start gap-4 py-2">
                 <span className="font-mono text-[12px] w-10 pt-1" style={{ color: C.muted }}>{day.day}</span>
                 <div className="flex-1 flex flex-wrap gap-1.5">
                   {day.classes.map((c, i) => (
-                    <span key={i} className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#0F0F0E0A' }}>{c.s}–{c.e} · {c.n}</span>
+                    <span key={i} className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ background: canvasSuccess ? '#E6F4EA' : '#0F0F0E0A', color: canvasSuccess ? '#1A7A3A' : C.ink }}>
+                      {c.s}–{c.e} · {c.n}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -170,13 +256,18 @@ function ScheduleSetup({ onNext, onBack }) {
           </div>
         </div>
       )}
-      <button onClick={onNext} disabled={!imported && input.length === 0} className="mt-10 w-full py-4 rounded-full font-medium text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40" style={{ background: C.ink, color: C.bg }}>
+
+      <button
+        onClick={onNext}
+        disabled={!imported && input.length === 0}
+        className="mt-10 w-full py-4 rounded-full font-medium text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
+        style={{ background: C.ink, color: C.bg }}
+      >
         Find my gym windows <ChevronRight size={18} />
       </button>
     </div>
   );
 }
-
 // ─── PROFILE SETUP ───────────────────────────────────────────────────────────
 
 function ProfileSetup({ onNext }) {
