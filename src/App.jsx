@@ -27,9 +27,11 @@ const MOCK_SCHEDULE = [
 
 const WORKOUTS_90 = [
   { id: 'w1', name: 'Full Body Flow', duration: 75, intensity: 'Moderate', equipment: 'Barbell + Bench', focus: 'Full body', exercises: 6, calories: 420, energy: ['ok', 'great'] },
-  { id: 'w2', name: 'Push Day · Chest + Shoulders', duration: 85, intensity: 'High', equipment: 'Dumbbells + Bench', focus: 'Push', exercises: 7, calories: 480, energy: ['great'] },
+  { id: 'w2', name: 'Push Day · Chest + Shoulders', duration: 85, intensity: 'High', equipment: 'Dumbbells + Bench', focus: 'push', exercises: 7, calories: 480, energy: ['great'] },
   { id: 'w3', name: 'Cardio + Core', duration: 60, intensity: 'High', equipment: 'Bodyweight + Mat', focus: 'Conditioning', exercises: 8, calories: 510, energy: ['great'] },
   { id: 'w4', name: 'Light Mobility Flow', duration: 45, intensity: 'Low', equipment: 'Mat', focus: 'Recovery', exercises: 6, calories: 180, energy: ['tired', 'ok'] },
+  { id: 'w5', name: 'Pull Day · Back + Biceps', duration: 80, intensity: 'High', equipment: 'Barbell + Cable', focus: 'pull', exercises: 6, calories: 460, energy: ['ok', 'great'] },
+  { id: 'w6', name: 'Leg Day · Squat Focus', duration: 90, intensity: 'High', equipment: 'Barbell + Rack', focus: 'legs', exercises: 6, calories: 530, energy: ['great'] },
 ];
 
 const WORKOUTS_SHORT = [
@@ -82,6 +84,7 @@ export default function IntervalApp() {
   const [userName, setUserName] = useState('');
   const [energyLevel, setEnergyLevel] = useState(null); // 'tired' | 'ok' | 'great'
   const [skipped, setSkipped] = useState(false);
+  const [customWorkouts, setCustomWorkouts] = useState([]);
 
   const go = (s) => { window.scrollTo(0, 0); setScreen(s); };
 
@@ -98,7 +101,8 @@ export default function IntervalApp() {
         {screen === 'energyCheck'  && <EnergyCheck userName={userName} onNext={(e) => { setEnergyLevel(e); go('home'); }} />}
         {screen === 'home'         && <HomeScreen userName={userName} streak={streak} examMode={examMode} energyLevel={energyLevel} skipped={skipped} onToggleExamMode={() => setExamMode(e => !e)} onPickWorkout={() => go('workoutList')} onSkip={() => { setSkipped(true); go('skipFlow'); }} onProgress={() => go('progress')} onWorkouts={() => go('workoutList')} onProfile={() => go('profile')} onLeaderboard={() => go('leaderboard')} />}
         {screen === 'skipFlow'     && <SkipFlow userName={userName} onHome={() => { setSkipped(false); go('home'); }} onWorkouts={() => go('workoutList')} />}
-        {screen === 'workoutList'  && <WorkoutList examMode={examMode} energyLevel={energyLevel} onPick={(w) => { setSelectedWorkout(w); go('workoutDetail'); }} onBack={() => go('home')} onProgress={() => go('progress')} onProfile={() => go('profile')} onLeaderboard={() => go('leaderboard')} />}
+        {screen === 'workoutList'  && <WorkoutList examMode={examMode} energyLevel={energyLevel} customWorkouts={customWorkouts} onPick={(w) => { setSelectedWorkout(w); go('workoutDetail'); }} onBack={() => go('home')} onProgress={() => go('progress')} onProfile={() => go('profile')} onLeaderboard={() => go('leaderboard')} onCreateWorkout={() => go('createWorkout')} />}
+        {screen === 'createWorkout' && <CreateWorkout onSave={(w) => { setCustomWorkouts(prev => [...prev, w]); go('workoutList'); }} onBack={() => go('workoutList')} />}
         {screen === 'workoutDetail' && selectedWorkout && <WorkoutDetail workout={selectedWorkout} onStart={() => { setExerciseIdx(0); go('active'); }} onBack={() => go('workoutList')} />}
         {screen === 'active'       && selectedWorkout && <ActiveWorkout idx={exerciseIdx} setIdx={setExerciseIdx} onDone={() => { setStreak(s => s + 1); setSkipped(false); go('complete'); }} onExit={() => go('home')} />}
         {screen === 'complete'     && selectedWorkout && <Complete workout={selectedWorkout} streak={streak + 1} onProgress={() => go('progress')} onHome={() => go('home')} />}
@@ -637,13 +641,22 @@ function HomeScreen({ userName, streak, examMode, energyLevel, skipped, onToggle
 
 // ─── WORKOUT LIST ─────────────────────────────────────────────────────────────
 
-function WorkoutList({ examMode, energyLevel, onPick, onBack, onProgress, onProfile, onLeaderboard }) {
+function WorkoutList({ examMode, energyLevel, customWorkouts = [], onPick, onBack, onProgress, onProfile, onLeaderboard, onCreateWorkout }) {
   const [filter, setFilter] = useState(examMode ? 'short' : 'all');
-
-  const allWorkouts = filter === 'short' ? WORKOUTS_SHORT : WORKOUTS_90;
+ 
+const allWorkouts = filter === 'short' ? WORKOUTS_SHORT : [...WORKOUTS_90, ...customWorkouts];
+const focusFiltered = (filter === 'all' || filter === 'short')
+  ? allWorkouts
+  : allWorkouts.filter(w => w.focus.toLowerCase() === filter);
+const filtered = energyLevel
+  ? focusFiltered.filter(w => !w.energy || w.energy.includes(energyLevel))
+  : focusFiltered;
+  /*const allWorkouts = filter === 'short' ? WORKOUTS_SHORT : WORKOUTS_90;
   const filtered = energyLevel
     ? allWorkouts.filter(w => !w.energy || w.energy.includes(energyLevel))
     : allWorkouts;
+    */
+  
 
   return (
     <div className="min-h-screen px-6 pt-12 pb-24">
@@ -705,6 +718,9 @@ function WorkoutList({ examMode, energyLevel, onPick, onBack, onProgress, onProf
             <p className="mt-2 text-[12px]" style={{ color: C.muted }}>{w.equipment}</p>
           </button>
         ))}
+        <button onClick={onCreateWorkout} className="w-full py-4 rounded-2xl border-2 border-dashed text-[14px] font-medium flex items-center justify-center gap-2 active:scale-[0.99] transition" style={{ borderColor: '#0F0F0E22', color: C.muted }}>
+         + Create your own workout
+       </button>
       </div>
       <BottomNav active="workouts" onHome={onBack} onWorkouts={() => {}} onProgress={onProgress} onProfile={onProfile} onLeaderboard={onLeaderboard} />
     </div>
@@ -746,7 +762,7 @@ function WorkoutDetail({ workout, onStart, onBack }) {
           <span className="text-[11px]" style={{ color: C.muted }}>Tap any exercise for form tips</span>
         </div>
         <div className="space-y-2">
-          {EXERCISES.slice(0, workout.exercises).map((e, i) => {
+          {(workout.customExercises || EXERCISES.slice(0, workout.exercises)).map((e, i) => {
             const detail = exerciseDetails[i];
             const isOpen = expanded === i;
             return (
@@ -1144,6 +1160,121 @@ function Profile({ userName, setUserName, streak, examMode, onToggleExamMode, on
         ))}
       </div>
       <BottomNav active="profile" onHome={onBack} onWorkouts={onWorkouts} onProgress={onProgress} onProfile={() => {}} onLeaderboard={onLeaderboard} />
+    </div>
+  );
+}
+
+// ─── CREATE WORKOUT ───────────────────────────────────────────────────────────
+
+function CreateWorkout({ onSave, onBack }) {
+  const [name, setName] = useState('');
+  const [duration, setDuration] = useState('');
+  const [category, setCategory] = useState('all');
+  const [exercises, setExercises] = useState([{ name: '', sets: '', cue: '' }]);
+
+  const addExercise = () => setExercises(prev => [...prev, { name: '', sets: '', cue: '' }]);
+  const removeExercise = (i) => setExercises(prev => prev.filter((_, idx) => idx !== i));
+  const updateExercise = (i, field, val) => setExercises(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e));
+
+  const canSave = name.trim() && duration && exercises[0].name.trim();
+
+  const handleSave = () => {
+    const newWorkout = {
+      id: `custom-${Date.now()}`,
+      name: name.trim(),
+      duration: parseInt(duration) || 30,
+      intensity: 'Custom',
+      equipment: 'Custom',
+      focus: category,
+      exercises: exercises.filter(e => e.name.trim()).length,
+      calories: Math.round((parseInt(duration) || 30) * 5),
+      energy: ['tired', 'ok', 'great'],
+      customExercises: exercises.filter(e => e.name.trim()),
+    };
+    onSave(newWorkout);
+  };
+
+  return (
+    <div className="min-h-screen px-6 pt-12 pb-32">
+      <button onClick={onBack} className="p-2 -ml-2"><ArrowLeft size={20} /></button>
+      <div className="mt-4">
+        <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Custom workout</p>
+        <h2 className="font-display text-[36px] leading-tight mt-1 font-light">Build your<br />own session.</h2>
+      </div>
+
+      <div className="mt-8 space-y-4">
+        <div>
+          <label className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Workout name</label>
+          <div className="mt-2 rounded-2xl px-4 py-3" style={{ background: C.soft }}>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. My Push Day"
+              className="w-full bg-transparent outline-none text-[16px]" />
+          </div>
+        </div>
+
+        <div>
+          <label className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Duration (minutes)</label>
+          <div className="mt-2 rounded-2xl px-4 py-3" style={{ background: C.soft }}>
+            <input value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g. 45" type="number"
+              className="w-full bg-transparent outline-none text-[16px]" />
+          </div>
+        </div> 
+
+        <div>
+          <label className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Category</label>
+          <div className="mt-2 flex gap-2 flex-wrap">
+            {[{id:'all',label:'General'},{id:'push',label:'Push'},{id:'pull',label:'Pull'},{id:'legs',label:'Legs'},{id:'short',label:'Under 20 min'}].map(f => (
+             <button key={f.id} onClick={() => setCategory(f.id)}
+               className="px-4 py-2 rounded-full text-[12px] font-medium border transition"
+               style={{ background: category === f.id ? C.ink : 'transparent', color: category === f.id ? C.bg : C.ink, borderColor: category === f.id ? C.ink : '#0F0F0E22' }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+       </div>
+    
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="font-mono text-[11px] uppercase tracking-wider" style={{ color: C.muted }}>Exercises</label>
+            <button onClick={addExercise} className="text-[12px] font-medium px-3 py-1 rounded-full" style={{ background: C.lime, color: C.ink }}>+ Add</button>
+          </div>
+          <div className="space-y-3">
+            {exercises.map((ex, i) => (
+              <div key={i} className="rounded-2xl p-4" style={{ background: C.soft }}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[12px] font-semibold" style={{ color: C.muted }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {exercises.length > 1 && (
+                    <button onClick={() => removeExercise(i)}><X size={14} style={{ color: C.muted }} /></button>
+                  )}
+                </div>
+                <input value={ex.name} onChange={e => updateExercise(i, 'name', e.target.value)}
+                  placeholder="Exercise name (e.g. Pull-up)"
+                  className="w-full bg-transparent outline-none text-[14px] border-b pb-2 mb-3"
+                  style={{ borderColor: '#0F0F0E15' }} />
+                <input value={ex.sets} onChange={e => updateExercise(i, 'sets', e.target.value)}
+                  placeholder="Sets & reps (e.g. 3 × 10)"
+                  className="w-full bg-transparent outline-none text-[13px] border-b pb-2 mb-3"
+                  style={{ borderColor: '#0F0F0E15', color: C.muted }} />
+                <input value={ex.cue} onChange={e => updateExercise(i, 'cue', e.target.value)}
+                  placeholder="Form tip (optional)"
+                  className="w-full bg-transparent outline-none text-[13px]"
+                  style={{ color: C.muted }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 p-4" style={{ background: `linear-gradient(to top, ${C.bg} 70%, transparent)` }}>
+        <div className="max-w-md mx-auto">
+          <button onClick={handleSave} disabled={!canSave}
+            className="w-full py-4 rounded-full font-medium text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-40"
+            style={{ background: C.ink, color: C.bg }}>
+            Save workout <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
