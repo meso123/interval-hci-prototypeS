@@ -522,7 +522,7 @@ function HomeScreen({ userName, streak, examMode, energyLevel, skipped, onToggle
         <div className="px-6 mt-3">
           <span className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full font-mono"
             style={{ background: energyLevel === 'great' ? C.lime + '33' : energyLevel === 'ok' ? C.amber + '33' : C.coral + '22', color: energyLevel === 'great' ? '#4A6600' : energyLevel === 'ok' ? '#7A4A00' : '#7A2000' }}>
-            {energyLevel === 'great' ? '⚡ Feeling great' : energyLevel === 'ok' ? '🔋 Energy OK' : '😴 Low energy'} · workouts filtered
+            {energyLevel === 'great' ? '⚡ Feeling great' : energyLevel === 'ok' ? '🔋 Energy OK' : '😴 Low energy'} · reccomended workouts based on how you feel today
           </span>
         </div>
       )}
@@ -1076,7 +1076,7 @@ function Profile({ userName, setUserName, streak, examMode, onToggleExamMode, on
 
   const stats = [
     { label: 'Sessions', value: `${totalSessions}` },
-    { label: 'Streak', value: `${streak}d` },
+    { label: 'Streak', value: `${streak} days` },
     { label: 'This month', value: `${thisMonth}` },
     { label: 'Best week', value: `${bestWeek}` },
   ];
